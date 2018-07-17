@@ -43,6 +43,8 @@ public class PhotoGLSurfaceView extends GLSurfaceView {
         setEGLContextClientVersion(2);
         setRenderer(photoRenderer);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        Log.i("ScreenDimensions", "PhotoGLSurfaceView: " + screenWidth + ", " + screenHeight);
+
     }
 
     @Override
@@ -92,13 +94,13 @@ public class PhotoGLSurfaceView extends GLSurfaceView {
             photoRenderer.capturePicture();
     }
 
-    public void closeCamera() {
-        photoRenderer.closeCamera();
+    public void closeCamera(String newCamId) {
+        photoRenderer.closeCamera(newCamId);
     }
 
-    public void openCamera(String newCamId) {
+    public void openCamera() {
         //photoRenderer = new PhotoRenderer(this,screenWidth, screenHeight, screenOrientation, newCamId);
-        photoRenderer.openCamera(newCamId);
+        photoRenderer.openCamera();
     }
 
     public Mat mRgb() {

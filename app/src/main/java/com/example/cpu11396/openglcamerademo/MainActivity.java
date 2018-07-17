@@ -15,6 +15,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
@@ -50,7 +51,7 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     private ImageView button;
     private ImageButton switchCam;
 
-    private String currentCamId;
+    public static String currentCamId;
 
     /**
      * Fields used for object detect
@@ -172,6 +173,8 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
 
         super.onCreate(savedInstanceState);
 
+        currentCamId = CAMERA_BACK;
+
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         int ui = getWindow().getDecorView().getSystemUiVisibility();
         ui = ui | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
@@ -182,20 +185,17 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
 
         setContentView(R.layout.activity_main);
         glSurfaceView = findViewById(R.id.glSurfaceView);
+        glSurfaceView.setLayoutParams(new FrameLayout.LayoutParams(1080, 1440));
         glSurfaceView.init(this, screenWidth, screenHeight, screenOrientation);
-
-        currentCamId = CAMERA_BACK;
 
         button = findViewById(R.id.buttonCapture);
         button.setOnClickListener((button) -> {glSurfaceView.capturePicture();
             Mat mRgb = glSurfaceView.mRgb();
             Mat mGray = glSurfaceView.mGray();
-
-
         });
 
         switchCam = findViewById(R.id.switch_cam);
-        switchCam.setOnClickListener((switchCam) -> switchCam() );
+        switchCam.setOnClickListener(view -> switchCam());
         this.mCameraManager = (CameraManager) this.getSystemService(Context.CAMERA_SERVICE);
         if (!hasPermissions(this, PERMISSIONS)) {
             ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_ALL_PERMISSION);
@@ -205,13 +205,13 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     private void switchCam() {
         if (currentCamId.equals(CAMERA_FRONT)) {
             currentCamId = CAMERA_BACK;
-            glSurfaceView.closeCamera();
-            glSurfaceView.openCamera(currentCamId);
+            glSurfaceView.closeCamera(currentCamId);
+            glSurfaceView.openCamera();
 
         } else {
             currentCamId = CAMERA_FRONT;
-            glSurfaceView.closeCamera();
-            glSurfaceView.openCamera(currentCamId);
+            glSurfaceView.closeCamera(currentCamId);
+            glSurfaceView.openCamera();
         }
     }
 
@@ -262,6 +262,8 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         screenWidth = displayMetrics.widthPixels;
-        screenHeight = displayMetrics.heightPixels;
+        //screenHeight = displayMetrics.heightPixels;
+        screenHeight = screenWidth*4/3;
+        Log.i("ScreenDimensions", "MainActivity: " + screenWidth + ", " + screenHeight);
     }
 }

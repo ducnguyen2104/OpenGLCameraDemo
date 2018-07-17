@@ -7,32 +7,34 @@
     android:layout_height="match_parent"
     android:background="@android:color/black"
     android:orientation="vertical"
+    android:layout_gravity="top"
     tools:context=".MainActivity">
 
     <com.example.cpu11396.openglcamerademo.PhotoGLSurfaceView
         android:id="@+id/glSurfaceView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="top" />
 
     <ImageView
         android:id="@+id/buttonCapture"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_margin="10dp"
+        android:layout_margin="20dp"
         android:background="@android:color/transparent"
         android:src="@android:drawable/ic_menu_camera"
         android:tint="@android:color/white" />
 
     <ImageButton
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="end"
-        android:layout_margin="10dp"
-        android:src="@drawable/switchcam"
-        android:scaleType="fitXY"
+        android:id="@+id/switch_cam"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
         android:background="@android:color/transparent"
-        android:id="@+id/switch_cam"/>
+        android:scaleType="fitXY"
+        android:src="@android:drawable/ic_popup_sync" />
 
 
 </FrameLayout>

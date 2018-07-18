@@ -16,6 +16,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top" />
 
+
     <ImageView
         android:id="@+id/buttonCapture"
         android:layout_width="50dp"

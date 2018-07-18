@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,6 +55,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import io.reactivex.Single;
+import io.reactivex.SingleObserver;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 import static org.opencv.core.CvType.CV_8UC4;
 
@@ -165,6 +171,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
     private final int SCREEN_HEIGHT;
     private final int SCREEN_ORIENTATION = Configuration.ORIENTATION_PORTRAIT;
     private final int MAX_SIDE_RESO = 1920;
+    private float[][] faceSquares = new float[5][12];
 
     /**
      * Fields use for object detection
@@ -184,6 +191,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
     public Mat mGray;
 
     public PhotoRenderer(PhotoGLSurfaceView photoGLSurfaceView, int screenWidth, int screenHeight, int screenOrientation, String cameraID) {
+        lastDrawFrame = 0;
         SCREEN_WIDTH = screenWidth;
         SCREEN_HEIGHT = screenHeight;
 //        SCREEN_ORIENTATION = screenOrientation;
@@ -219,7 +227,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         if (surfaceTexture != null)
             surfaceTexture.release();
         surfaceTexture = null;
-        if(textureSurface != null)
+        if (textureSurface != null)
             textureSurface.release();
         closeCamera(cameraID);
         stopBackgroundThread();
@@ -245,7 +253,6 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        ///////////////////////////
         GLES30.glClearColor(0f, 0f, 0f, 1f);
         Point p = new Point();
         photoGLSurfaceView.getDisplay().getRealSize(p);
@@ -255,6 +262,9 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         surfaceTexture = new SurfaceTexture(hTex[0]);
         surfaceTexture.setOnFrameAvailableListener(this);
 
+        /**
+         * Load and compile shaders
+         */
         program = loadShader(VERTEX_SHADER, FRAGMENT_SHADER);
         Log.i("ScreenDimensions", "onSurfaceCreated: " + cameraID);
         openCamera();
@@ -268,8 +278,18 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         GLES30.glViewport(0, 0, 1080, 1440);
     }
 
+    public long lastDrawFrame;
+
     @Override
     public void onDrawFrame(GL10 gl) {
+        long newDrawFrame = System.currentTimeMillis();
+        if (lastDrawFrame != 0) {
+            Log.i("onDrawFrame", "time between 2 calls: " + (newDrawFrame - lastDrawFrame));
+        }
+        lastDrawFrame = newDrawFrame;
+        Log.i("onDrawFrame", "current thread: " + Thread.currentThread().getName());
+        int width = 1080; //previewSize.getWidth();
+        int height = 1440; //previewSize.getHeight();
         if (!GLInit)
             return;
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
@@ -296,43 +316,240 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         GLES30.glEnableVertexAttribArray(positionHandle);
         GLES30.glEnableVertexAttribArray(textureCoordHandle);
 
+
 //        int colorMatrixHandle = GLES30.glGetUniformLocation(program, "colorMatrix");
 //        int intensityHandle = GLES30.glGetUniformLocation(program, "intensity");
 //        GLES30.glUniform1f(intensityHandle, 1f);
 //        GLES30.glUniformMatrix4fv(colorMatrixHandle, 1, false, COLOR_MATRIX, 0);
 
-        GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "sTexture"), 0);
-        /**
-         * Begin to draw
-         */
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
-        GLES30.glFlush();
+        GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "+"), 0);
 
+        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
+
+        /**
+         * start OCV
+         */
+        ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
+        GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
+        buffer.order(ByteOrder.nativeOrder());
+        //////////////////////////////////////////////////////////////////
+//        GLES30.glFlush();
+
+
+        Single.just(1).observeOn(Schedulers.computation()).subscribe(new SingleObserver<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onSuccess(Integer integer) {
+                long startOCV = System.currentTimeMillis();
+                Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
+                mRgb = new Mat();
+
+                /**
+                 * Flip Mat to correct orientation
+                 */
+                Core.flip(mRawRgb, mRgb, 0);
+
+                mGray = new Mat();
+                Imgproc.cvtColor(mRgb, mGray, Imgproc.COLOR_RGB2GRAY);
+
+                mNativeDetector = MainActivity.mNativeDetector;
+                mJavaDetector = MainActivity.mJavaDetector;
+
+                mNativeDetector.setMinFaceSize(360);
+                MatOfRect faces = new MatOfRect();
+
+                if (mDetectorType == JAVA_DETECTOR) {
+                    if (mJavaDetector != null)
+                        mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                                new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
+
+//                if (mJavaDetector2 != null)
+//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
+                } else if (mDetectorType == NATIVE_DETECTOR) {
+                    if (mNativeDetector != null)
+                        mNativeDetector.detect(mGray, faces);
+
+//                if (mNativeDetector2 != null)
+//                    mNativeDetector2.detect(mGray, eyes);
+                } else {
+                    Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
+                }
+
+                Rect[] facesArray = faces.toArray();
+                for (int i = 0; i < facesArray.length; i++) {
+                    if (i >= 5) {
+                        break;
+                    }
+//            Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
+                    Rect faceRect = facesArray[i];
+                    int faceHeight = faceRect.height;
+                    int faceWidth = faceRect.width;
+                    int faceX = faceRect.x;
+                    int faceY = faceRect.y;
+                    faceSquares[i] = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
+                }
+                if (facesArray.length < 5) {
+                    for (int i = facesArray.length; i < 5; i++) {
+                        faceSquares[i] = new float[12];
+                    }
+                }
+                long endOCV = System.currentTimeMillis();
+                Log.i("onDrawFrame", "OCV runtime milis: " + (endOCV - startOCV));
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+        });
+
+        for (int i = 0; i < 5; i++) {
+            Log.i("onDrawFrame", "" + faceSquares[i][0] + ", " + faceSquares[i][1]);
+            if (faceSquares[i] != null && (faceSquares[i][0] != 0 || faceSquares[i][1] != 0)) {
+
+                ByteBuffer bb = ByteBuffer.allocateDirect(
+                        // (# of coordinate values * 4 bytes per float)
+                        faceSquares[i].length * 4);
+                bb.order(ByteOrder.nativeOrder());
+                FloatBuffer vertexBuffer = bb.asFloatBuffer();
+                vertexBuffer.put(faceSquares[i]);
+                vertexBuffer.position(0);
+
+                short drawOrder[] = {0, 1, 2, 3}; // order to draw vertices
+                // initialize byte buffer for the draw list
+                ByteBuffer dlb = ByteBuffer.allocateDirect(
+                        // (# of coordinate values * 2 bytes per short)
+                        drawOrder.length * 2);
+                dlb.order(ByteOrder.nativeOrder());
+                ShortBuffer drawListBuffer = dlb.asShortBuffer();
+                drawListBuffer.put(drawOrder);
+                drawListBuffer.position(0);
+                // Prepare the triangle coordinate data
+                GLES20.glVertexAttribPointer(positionHandle, /*COORDS_PER_VERTEX*/3,
+                        GLES20.GL_FLOAT, false,
+                        /*vertexStride*/12, vertexBuffer);
+                // Draw the square
+                GLES30.glLineWidth(5);
+                GLES20.glDrawElements(
+                        GLES20.GL_LINE_LOOP, drawOrder.length,
+                        GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
+            }
+        }
+        GLES30.glFlush();
+        /*long startOCV = System.currentTimeMillis();
+        Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
+        mRgb = new Mat();
+
+        *//**
+         * Flip Mat to correct orientation
+         *//*
+        Core.flip(mRawRgb, mRgb, 0);
+
+        mGray = new Mat();
+        Imgproc.cvtColor(mRgb, mGray, Imgproc.COLOR_RGB2GRAY);
+
+        mNativeDetector = MainActivity.mNativeDetector;
+        mJavaDetector = MainActivity.mJavaDetector;
+
+        mNativeDetector.setMinFaceSize(360);
+        MatOfRect faces = new MatOfRect();
+
+        if (mDetectorType == JAVA_DETECTOR) {
+            if (mJavaDetector != null)
+                mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                        new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
+
+//                if (mJavaDetector2 != null)
+//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
+        } else if (mDetectorType == NATIVE_DETECTOR) {
+            if (mNativeDetector != null)
+                mNativeDetector.detect(mGray, faces);
+
+//                if (mNativeDetector2 != null)
+//                    mNativeDetector2.detect(mGray, eyes);
+        } else {
+            Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
+        }
+
+        Rect[] facesArray = faces.toArray();
+        for (int i = 0; i < facesArray.length; i++) {
+//            Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
+            Rect faceRect = facesArray[i];
+            int faceHeight = faceRect.height;
+            int faceWidth = faceRect.width;
+            int faceX = faceRect.x;
+            int faceY = faceRect.y;
+            float[] squareCoords = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
+
+            ByteBuffer bb = ByteBuffer.allocateDirect(
+                    // (# of coordinate values * 4 bytes per float)
+                    squareCoords.length * 4);
+            bb.order(ByteOrder.nativeOrder());
+            FloatBuffer vertexBuffer = bb.asFloatBuffer();
+            vertexBuffer.put(squareCoords);
+            vertexBuffer.position(0);
+
+            short drawOrder[] = {0, 1, 2, 3}; // order to draw vertices
+            // initialize byte buffer for the draw list
+            ByteBuffer dlb = ByteBuffer.allocateDirect(
+                    // (# of coordinate values * 2 bytes per short)
+                    drawOrder.length * 2);
+            dlb.order(ByteOrder.nativeOrder());
+            ShortBuffer drawListBuffer = dlb.asShortBuffer();
+            drawListBuffer.put(drawOrder);
+            drawListBuffer.position(0);
+            Log.i("faceDetected", "" + faceHeight + ", " + faceWidth + ", " + faceX + ", " + faceY);
+            // Prepare the triangle coordinate data
+            GLES20.glVertexAttribPointer(positionHandle, *//*COORDS_PER_VERTEX*//*3,
+                    GLES20.GL_FLOAT, false,
+                    *//*vertexStride*//*12, vertexBuffer);
+            // Draw the square
+            GLES30.glLineWidth(5);
+            GLES20.glDrawElements(
+                    GLES20.GL_LINE_LOOP, drawOrder.length,
+                    GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
+
+            Log.i("draw square", "[" + squareCoords[0] + ", " + squareCoords[1] + "], ["
+                    + squareCoords[3] + ", " + squareCoords[4] + "], ["
+                    + squareCoords[6] + ", " + squareCoords[7] + "], ["
+                    + squareCoords[9] + ", " + squareCoords[10] + "]");
+
+//            // Disable vertex array
+//            GLES20.glDisableVertexAttribArray(positionHandle);
+        }
+        long endOCV = System.currentTimeMillis();
+        Log.i("onDrawFrame", "OCV runtime milis: " + (endOCV - startOCV));*/
         if (isCapture) {
             File rootFile;
             File mFile;
             rootFile = new File(Environment
                     .getExternalStorageDirectory()
-                    .getAbsolutePath() + "/MyAppChat/Images");
+                    .getAbsolutePath() + "/OpenGLCamera/Images");
             if (!rootFile.exists())
                 rootFile.mkdirs();
             mFile = new File(rootFile.getPath() + "/Image_"
                     + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())
                     + ".jpeg");
-            Bitmap bmp;
-            int width = 1080; //previewSize.getWidth();
-            int height = 1440; //previewSize.getHeight();
 
-            ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
-            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
-            buffer.order(ByteOrder.nativeOrder());
+//            int width = 1080; //previewSize.getWidth();
+//            int height = 1440; //previewSize.getHeight();
 
-            Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
+//            ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
+//            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
+//            buffer.order(ByteOrder.nativeOrder());
+
+            /*Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
             mRgb = new Mat();
 
-            /**
+            *//**
              * Flip Mat to correct orientation
-             */
+             *//*
             Core.flip(mRawRgb, mRgb, 0);
 
             mGray = new Mat();
@@ -363,18 +580,24 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             }
 
             Rect[] facesArray = faces.toArray();
-            for (int i = 0; i < facesArray.length; i++)
+            for (int i = 0; i < facesArray.length; i++) {
                 Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
+                Rect faceRect = facesArray[i];
+                int faceHeight = faceRect.height;
+                int faceWidth = faceRect.width;
+                int faceX = faceRect.x;
+                int faceY = faceRect.y;
+                float[] squareCoords = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
+                Square square = new Square(squareCoords);
+                square.draw();
+                Log.i("faceDetected", "" + faceHeight + ", " + faceWidth + ", " + faceX + ", " + faceY);
+            }*/
 
-
+            Bitmap bmp;
             bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-//            bmp.copyPixelsFromBuffer(buffer);
-//            // Flip the bitmap, as the buffer of GLES is different from the buffer order
-//            // of bitmap
 
             Utils.matToBitmap(mRgb, bmp);
 
-//            bmp = flipBitmap(bmp);*/
             FileOutputStream fileOutputStream = null;
             try {
                 fileOutputStream = new FileOutputStream(mFile.getPath());
@@ -394,7 +617,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
             isCapture = false;
             bmp.recycle();
-            mRawRgb.release();
+            //mRawRgb.release();
             mRgb.release();
             mGray.release();
             //saveFileSuccessfully(mFile);
@@ -413,9 +636,9 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
     @Override
     public synchronized void onFrameAvailable(SurfaceTexture surfaceTexture) {
+
         updateSurfaceTexture = true;
         photoGLSurfaceView.requestRender();
-
     }
 
     private void initTex() {
@@ -701,6 +924,8 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
             previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             previewRequestBuilder.addTarget(textureSurface);
+
+
             cameraDevice.createCaptureSession(Collections.singletonList(textureSurface),
                     new CameraCaptureSession.StateCallback() {
                         @Override
@@ -735,4 +960,39 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         isCapture = true;
     }
 
+    /**
+     * Default screen size: 1080 x 1440
+     *
+     * @param height
+     * @param width
+     * @param x
+     * @param y
+     * @return float array to be passed to openGL
+     */
+    public float[] caclulateFaceSquare(int height, int width, int x, int y) {
+        float squareCoords[] = {
+                (float) ((x - 540f) / 540f), (float) ((720 - y) / 720f), 0.0f,  //top left
+                (float) ((x - 540f) / 540f), (float) ((720 - (y + height)) / 720f), 0.0f, //bottom left
+                (float) ((x + width - 540f) / 540f), (float) ((720 - (y + height)) / 720f), 0.0f, //bottom right
+                (float) ((x + width - 540f) / 540f), (float) ((720 - y) / 720f), 0.0f, //top right
+        };
+        Log.i("face square", "(" + squareCoords[0] + ", " + squareCoords[1] + "), ("
+                + squareCoords[3] + ", " + squareCoords[4] + "), ("
+                + squareCoords[6] + ", " + squareCoords[7] + "), ("
+                + squareCoords[9] + ", " + squareCoords[10] + ")");
+        return squareCoords;
+    }
+
+    public static int myLoadShader(int type, String shaderCode) {
+
+        // create a vertex shader type (GLES20.GL_VERTEX_SHADER)
+        // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
+        int shader = GLES20.glCreateShader(type);
+
+        // add the source code to the shader and compile it
+        GLES20.glShaderSource(shader, shaderCode);
+        GLES20.glCompileShader(shader);
+
+        return shader;
+    }
 }

@@ -94,6 +94,10 @@ public class PhotoGLSurfaceView extends GLSurfaceView {
             photoRenderer.capturePicture();
     }
 
+    public void switchCamera(String newCameraID) {
+        photoRenderer.switchCamera(newCameraID);
+    }
+
     public void closeCamera(String newCamId) {
         photoRenderer.closeCamera(newCamId);
     }

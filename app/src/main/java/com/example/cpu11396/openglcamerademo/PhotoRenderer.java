@@ -256,7 +256,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         GLES30.glClearColor(0f, 0f, 0f, 1f);
         Point p = new Point();
         photoGLSurfaceView.getDisplay().getRealSize(p);
-        calculatePreviewSize(p);
+        calculatePreviewSize();
 
         initTex();
         surfaceTexture = new SurfaceTexture(hTex[0]);
@@ -287,7 +287,6 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             Log.i("onDrawFrame", "time between 2 calls: " + (newDrawFrame - lastDrawFrame));
         }
         lastDrawFrame = newDrawFrame;
-        Log.i("onDrawFrame", "current thread: " + Thread.currentThread().getName());
         int width = 1080; //previewSize.getWidth();
         int height = 1440; //previewSize.getHeight();
         if (!GLInit)
@@ -323,15 +322,18 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 //        GLES30.glUniformMatrix4fv(colorMatrixHandle, 1, false, COLOR_MATRIX, 0);
 
         GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "+"), 0);
-
+        long startDraw = System.currentTimeMillis();
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
-
+        long endDraw = System.currentTimeMillis();
         /**
          * start OCV
          */
+        long startBuf = System.currentTimeMillis();
         ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
         GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
         buffer.order(ByteOrder.nativeOrder());
+        long endBuf = System.currentTimeMillis();
+        Log.i("onDrawFrame", "read frame and write to buffer: " + (endBuf - startBuf));
         //////////////////////////////////////////////////////////////////
 //        GLES30.glFlush();
 
@@ -399,7 +401,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
                     }
                 }
                 long endOCV = System.currentTimeMillis();
-                Log.i("onDrawFrame", "OCV runtime milis: " + (endOCV - startOCV));
+                Log.i("onDrawFrame", "OCV runtime: " + (endOCV - startOCV));
             }
 
             @Override
@@ -409,7 +411,6 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         });
 
         for (int i = 0; i < 5; i++) {
-            Log.i("onDrawFrame", "" + faceSquares[i][0] + ", " + faceSquares[i][1]);
             if (faceSquares[i] != null && (faceSquares[i][0] != 0 || faceSquares[i][1] != 0)) {
 
                 ByteBuffer bb = ByteBuffer.allocateDirect(
@@ -441,90 +442,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             }
         }
         GLES30.glFlush();
-        /*long startOCV = System.currentTimeMillis();
-        Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
-        mRgb = new Mat();
 
-        *//**
-         * Flip Mat to correct orientation
-         *//*
-        Core.flip(mRawRgb, mRgb, 0);
-
-        mGray = new Mat();
-        Imgproc.cvtColor(mRgb, mGray, Imgproc.COLOR_RGB2GRAY);
-
-        mNativeDetector = MainActivity.mNativeDetector;
-        mJavaDetector = MainActivity.mJavaDetector;
-
-        mNativeDetector.setMinFaceSize(360);
-        MatOfRect faces = new MatOfRect();
-
-        if (mDetectorType == JAVA_DETECTOR) {
-            if (mJavaDetector != null)
-                mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-                        new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
-
-//                if (mJavaDetector2 != null)
-//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
-        } else if (mDetectorType == NATIVE_DETECTOR) {
-            if (mNativeDetector != null)
-                mNativeDetector.detect(mGray, faces);
-
-//                if (mNativeDetector2 != null)
-//                    mNativeDetector2.detect(mGray, eyes);
-        } else {
-            Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
-        }
-
-        Rect[] facesArray = faces.toArray();
-        for (int i = 0; i < facesArray.length; i++) {
-//            Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
-            Rect faceRect = facesArray[i];
-            int faceHeight = faceRect.height;
-            int faceWidth = faceRect.width;
-            int faceX = faceRect.x;
-            int faceY = faceRect.y;
-            float[] squareCoords = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
-
-            ByteBuffer bb = ByteBuffer.allocateDirect(
-                    // (# of coordinate values * 4 bytes per float)
-                    squareCoords.length * 4);
-            bb.order(ByteOrder.nativeOrder());
-            FloatBuffer vertexBuffer = bb.asFloatBuffer();
-            vertexBuffer.put(squareCoords);
-            vertexBuffer.position(0);
-
-            short drawOrder[] = {0, 1, 2, 3}; // order to draw vertices
-            // initialize byte buffer for the draw list
-            ByteBuffer dlb = ByteBuffer.allocateDirect(
-                    // (# of coordinate values * 2 bytes per short)
-                    drawOrder.length * 2);
-            dlb.order(ByteOrder.nativeOrder());
-            ShortBuffer drawListBuffer = dlb.asShortBuffer();
-            drawListBuffer.put(drawOrder);
-            drawListBuffer.position(0);
-            Log.i("faceDetected", "" + faceHeight + ", " + faceWidth + ", " + faceX + ", " + faceY);
-            // Prepare the triangle coordinate data
-            GLES20.glVertexAttribPointer(positionHandle, *//*COORDS_PER_VERTEX*//*3,
-                    GLES20.GL_FLOAT, false,
-                    *//*vertexStride*//*12, vertexBuffer);
-            // Draw the square
-            GLES30.glLineWidth(5);
-            GLES20.glDrawElements(
-                    GLES20.GL_LINE_LOOP, drawOrder.length,
-                    GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
-
-            Log.i("draw square", "[" + squareCoords[0] + ", " + squareCoords[1] + "], ["
-                    + squareCoords[3] + ", " + squareCoords[4] + "], ["
-                    + squareCoords[6] + ", " + squareCoords[7] + "], ["
-                    + squareCoords[9] + ", " + squareCoords[10] + "]");
-
-//            // Disable vertex array
-//            GLES20.glDisableVertexAttribArray(positionHandle);
-        }
-        long endOCV = System.currentTimeMillis();
-        Log.i("onDrawFrame", "OCV runtime milis: " + (endOCV - startOCV));*/
         if (isCapture) {
             File rootFile;
             File mFile;
@@ -622,6 +540,13 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             mGray.release();
             //saveFileSuccessfully(mFile);
         }
+        if(needToSwitchCamera) {
+            closeCamera(cameraID);
+            calculatePreviewSize();
+            openCamera();
+            needToSwitchCamera = false;
+        }
+        Log.i("onDrawFrame", "onDrawFrame runtime: " + (System.currentTimeMillis() - newDrawFrame));
     }
 
     /**
@@ -686,10 +611,8 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
     /**
      * Choose the previewSize. This previewSize is used for surface texture, bitmap operations
-     *
-     * @param p
      */
-    private void calculatePreviewSize(Point p) {
+    private void calculatePreviewSize( ) {
         CameraManager cameraManager = (CameraManager) photoGLSurfaceView.getContext().getSystemService(Context.CAMERA_SERVICE);
         try {
             assert cameraManager != null;
@@ -995,4 +918,9 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
         return shader;
     }
+    private boolean needToSwitchCamera = false;
+     public void switchCamera(String newCameraID) {
+         needToSwitchCamera = true;
+         cameraID = newCameraID;
+     }
 }

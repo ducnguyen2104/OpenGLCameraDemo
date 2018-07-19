@@ -203,7 +203,13 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     }
 
     private void switchCam() {
-        if (currentCamId.equals(CAMERA_FRONT)) {
+        if(currentCamId.equals("0")) {
+            currentCamId = "1";
+        } else {
+            currentCamId = "0";
+        }
+        glSurfaceView.switchCamera(currentCamId);
+        /*if (currentCamId.equals(CAMERA_FRONT)) {
             currentCamId = CAMERA_BACK;
             glSurfaceView.closeCamera(currentCamId);
             glSurfaceView.openCamera();
@@ -212,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
             currentCamId = CAMERA_FRONT;
             glSurfaceView.closeCamera(currentCamId);
             glSurfaceView.openCamera();
-        }
+        }*/
     }
 
     @Override

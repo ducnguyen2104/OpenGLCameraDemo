@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
@@ -14,6 +15,8 @@ import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.media.ImageReader;
 import android.net.Uri;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
@@ -28,8 +31,10 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 
+import org.opencv.android.JavaCamera2View;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
@@ -45,8 +50,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.sql.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
@@ -338,7 +345,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 //        GLES30.glFlush();
 
 
-        Single.just(1).observeOn(Schedulers.computation()).subscribe(new SingleObserver<Integer>() {
+        /*Single.just(1).observeOn(Schedulers.computation()).subscribe(new SingleObserver<Integer>() {
             @Override
             public void onSubscribe(Disposable d) {
 
@@ -350,9 +357,9 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
                 Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
                 mRgb = new Mat();
 
-                /**
-                 * Flip Mat to correct orientation
-                 */
+                *//**
+         * Flip Mat to correct orientation
+         *//*
                 Core.flip(mRawRgb, mRgb, 0);
 
                 mGray = new Mat();
@@ -408,7 +415,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             public void onError(Throwable e) {
 
             }
-        });
+        });*/
 
         for (int i = 0; i < 5; i++) {
             if (faceSquares[i] != null && (faceSquares[i][0] != 0 || faceSquares[i][1] != 0)) {
@@ -443,7 +450,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         }
         GLES30.glFlush();
 
-        if (isCapture) {
+/*        if (isCapture) {
             File rootFile;
             File mFile;
             rootFile = new File(Environment
@@ -454,63 +461,6 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             mFile = new File(rootFile.getPath() + "/Image_"
                     + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())
                     + ".jpeg");
-
-//            int width = 1080; //previewSize.getWidth();
-//            int height = 1440; //previewSize.getHeight();
-
-//            ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
-//            GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
-//            buffer.order(ByteOrder.nativeOrder());
-
-            /*Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
-            mRgb = new Mat();
-
-            *//**
-             * Flip Mat to correct orientation
-             *//*
-            Core.flip(mRawRgb, mRgb, 0);
-
-            mGray = new Mat();
-            Imgproc.cvtColor(mRgb, mGray, Imgproc.COLOR_RGB2GRAY);
-
-            mNativeDetector = MainActivity.mNativeDetector;
-            mJavaDetector = MainActivity.mJavaDetector;
-
-            mNativeDetector.setMinFaceSize(360);
-            MatOfRect faces = new MatOfRect();
-
-            if (mDetectorType == JAVA_DETECTOR) {
-                if (mJavaDetector != null)
-                    mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-                            new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
-
-//                if (mJavaDetector2 != null)
-//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
-            } else if (mDetectorType == NATIVE_DETECTOR) {
-                if (mNativeDetector != null)
-                    mNativeDetector.detect(mGray, faces);
-
-//                if (mNativeDetector2 != null)
-//                    mNativeDetector2.detect(mGray, eyes);
-            } else {
-                Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
-            }
-
-            Rect[] facesArray = faces.toArray();
-            for (int i = 0; i < facesArray.length; i++) {
-                Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
-                Rect faceRect = facesArray[i];
-                int faceHeight = faceRect.height;
-                int faceWidth = faceRect.width;
-                int faceX = faceRect.x;
-                int faceY = faceRect.y;
-                float[] squareCoords = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
-                Square square = new Square(squareCoords);
-                square.draw();
-                Log.i("faceDetected", "" + faceHeight + ", " + faceWidth + ", " + faceX + ", " + faceY);
-            }*/
-
             Bitmap bmp;
             bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
 
@@ -539,8 +489,8 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
             mRgb.release();
             mGray.release();
             //saveFileSuccessfully(mFile);
-        }
-        if(needToSwitchCamera) {
+        }*/
+        if (needToSwitchCamera) {
             closeCamera(cameraID);
             calculatePreviewSize();
             openCamera();
@@ -612,7 +562,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
     /**
      * Choose the previewSize. This previewSize is used for surface texture, bitmap operations
      */
-    private void calculatePreviewSize( ) {
+    private void calculatePreviewSize() {
         CameraManager cameraManager = (CameraManager) photoGLSurfaceView.getContext().getSystemService(Context.CAMERA_SERVICE);
         try {
             assert cameraManager != null;
@@ -791,6 +741,10 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
                 cameraDevice.close();
                 cameraDevice = null;
             }
+            if (null != mImageReader) {
+                mImageReader.close();
+                mImageReader = null;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
             throw new RuntimeException("Interrupted exception " + e.getMessage());
@@ -839,17 +793,144 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
         }
     };
 
+    private ImageReader mImageReader;
+    private int mPreviewFormat = ImageFormat.YUV_420_888;
+
     private void createCameraPreviewSession() {
         try {
+            int w = 1080;
+            int h = 1440;
+            mImageReader = ImageReader.newInstance(w, h, mPreviewFormat, 2);
+            mImageReader.setOnImageAvailableListener(reader -> {
+                Log.i("OCV:" , "onImageAvailable thread run: " + Thread.currentThread().getName());
+                Image image = reader.acquireLatestImage();
+                if (image == null)
+                    return;
+
+                // sanity checks - 3 planes
+                Image.Plane[] planes = image.getPlanes();
+                assert (planes.length == 3);
+                assert (image.getFormat() == mPreviewFormat);
+
+                // see also https://developer.android.com/reference/android/graphics/ImageFormat.html#YUV_420_888
+                // Y plane (0) non-interleaved => stride == 1; U/V plane interleaved => stride == 2
+                assert (planes[0].getPixelStride() == 1);
+                assert (planes[1].getPixelStride() == 2);
+                assert (planes[2].getPixelStride() == 2);
+
+                ByteBuffer y_plane = planes[0].getBuffer();
+//                    ByteBuffer uv_plane = planes[1].getBuffer();
+                Mat y_mat = new Mat(h, w, CvType.CV_8UC1, y_plane);
+//                    Mat uv_mat = new Mat(h / 2, w / 2, CvType.CV_8UC2, uv_plane);
+                Mat mGray = y_mat;
+//                Mat mGray = y_mat.submat(0, h, 0, w);
+//                Mat mGray = new Mat();
+//                Core.flip(mRawGray, mGray, 0);
+
+                if (isCapture) {
+                    Log.i("OCV:" , "capture gray img");
+                    File rootFile;
+                    File mFile;
+                    rootFile = new File(Environment
+                            .getExternalStorageDirectory()
+                            .getAbsolutePath() + "/OpenGLCamera/Images");
+                    if (!rootFile.exists())
+                        rootFile.mkdirs();
+                    mFile = new File(rootFile.getPath() + "/Image_"
+                            + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())
+                            + ".jpeg");
+                    Bitmap bmp;
+                    bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+
+                    Utils.matToBitmap(mGray, bmp);
+
+                    FileOutputStream fileOutputStream = null;
+                    try {
+                        fileOutputStream = new FileOutputStream(mFile.getPath());
+                        bmp.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("File not found exception " + e.getMessage());
+                    } finally {
+                        if (fileOutputStream != null) {
+                            try {
+                                fileOutputStream.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    isCapture = false;
+                    bmp.recycle();
+                    //mRawRgb.release();
+                    mGray.release();
+                    //saveFileSuccessfully(mFile);
+                }
+
+                mNativeDetector = MainActivity.mNativeDetector;
+                mJavaDetector = MainActivity.mJavaDetector;
+
+                mNativeDetector.setMinFaceSize(360);
+                MatOfRect faces = new MatOfRect();
+
+                if (mDetectorType == JAVA_DETECTOR) {
+                    if (mJavaDetector != null)
+                        mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+                                new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
+
+//                if (mJavaDetector2 != null)
+//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
+//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
+                } else if (mDetectorType == NATIVE_DETECTOR) {
+                    if (mNativeDetector != null)
+                        mNativeDetector.detect(mGray, faces);
+
+//                if (mNativeDetector2 != null)
+//                    mNativeDetector2.detect(mGray, eyes);
+                } else {
+                    Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
+                }
+
+                Rect[] facesArray = faces.toArray();
+                for (int i = 0; i < facesArray.length; i++) {
+                    if (i >= 5) {
+                        break;
+                    }
+//            Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
+                    Log.i("OCV", "face detected" );
+                    Rect faceRect = facesArray[i];
+                    int faceHeight = faceRect.height;
+                    int faceWidth = faceRect.width;
+                    int faceX = faceRect.x;
+                    int faceY = faceRect.y;
+                    faceSquares[i] = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
+                }
+                if (facesArray.length < 5) {
+                    for (int i = facesArray.length; i < 5; i++) {
+                        faceSquares[i] = new float[12];
+                    }
+                }
+
+                /**
+                 * /////////////////////////////////////
+                 */
+                image.close();
+            }, backgroundHandler);
+
+            Surface surface = mImageReader.getSurface();
+
+            previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            previewRequestBuilder.addTarget(surface);
+
             surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
 
             textureSurface = new Surface(surfaceTexture);
 
-            previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+//            previewRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             previewRequestBuilder.addTarget(textureSurface);
 
 
-            cameraDevice.createCaptureSession(Collections.singletonList(textureSurface),
+            cameraDevice.createCaptureSession(Arrays.asList(textureSurface, surface),
                     new CameraCaptureSession.StateCallback() {
                         @Override
                         public void onConfigured(@NonNull CameraCaptureSession session) {
@@ -918,9 +999,11 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
         return shader;
     }
+
     private boolean needToSwitchCamera = false;
-     public void switchCamera(String newCameraID) {
-         needToSwitchCamera = true;
-         cameraID = newCameraID;
-     }
+
+    public void switchCamera(String newCameraID) {
+        needToSwitchCamera = true;
+        cameraID = newCameraID;
+    }
 }

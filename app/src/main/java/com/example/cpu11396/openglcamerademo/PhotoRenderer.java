@@ -22,7 +22,6 @@ import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
-import android.opengl.GLUtils;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -31,15 +30,12 @@ import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
 
-import org.opencv.android.JavaCamera2View;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfRect;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
@@ -50,11 +46,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
-import java.sql.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.Semaphore;
@@ -62,13 +56,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-
-import io.reactivex.Single;
-import io.reactivex.SingleObserver;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.schedulers.Schedulers;
-
-import static org.opencv.core.CvType.CV_8UC4;
 
 public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailableListener
         , CallBackListener {
@@ -329,93 +316,17 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 //        GLES30.glUniformMatrix4fv(colorMatrixHandle, 1, false, COLOR_MATRIX, 0);
 
         GLES30.glUniform1i(GLES30.glGetUniformLocation(program, "+"), 0);
-        long startDraw = System.currentTimeMillis();
         GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, 4);
-        long endDraw = System.currentTimeMillis();
         /**
          * start OCV
          */
-        long startBuf = System.currentTimeMillis();
+        /*long startBuf = System.currentTimeMillis();
         ByteBuffer buffer = ByteBuffer.allocateDirect(width * height * 4);
         GLES30.glReadPixels(0, 0, width, height, GLES30.GL_RGBA, GLES30.GL_UNSIGNED_BYTE, buffer);
         buffer.order(ByteOrder.nativeOrder());
         long endBuf = System.currentTimeMillis();
-        Log.i("onDrawFrame", "read frame and write to buffer: " + (endBuf - startBuf));
+        Log.i("onDrawFrame", "read frame and write to buffer: " + (endBuf - startBuf));*/
         //////////////////////////////////////////////////////////////////
-//        GLES30.glFlush();
-
-
-        /*Single.just(1).observeOn(Schedulers.computation()).subscribe(new SingleObserver<Integer>() {
-            @Override
-            public void onSubscribe(Disposable d) {
-
-            }
-
-            @Override
-            public void onSuccess(Integer integer) {
-                long startOCV = System.currentTimeMillis();
-                Mat mRawRgb = new Mat(height, width, CV_8UC4, buffer);
-                mRgb = new Mat();
-
-                *//**
-         * Flip Mat to correct orientation
-         *//*
-                Core.flip(mRawRgb, mRgb, 0);
-
-                mGray = new Mat();
-                Imgproc.cvtColor(mRgb, mGray, Imgproc.COLOR_RGB2GRAY);
-
-                mNativeDetector = MainActivity.mNativeDetector;
-                mJavaDetector = MainActivity.mJavaDetector;
-
-                mNativeDetector.setMinFaceSize(360);
-                MatOfRect faces = new MatOfRect();
-
-                if (mDetectorType == JAVA_DETECTOR) {
-                    if (mJavaDetector != null)
-                        mJavaDetector.detectMultiScale(mGray, faces, 1.1, 4, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-                                new org.opencv.core.Size(360, 360), new org.opencv.core.Size());
-
-//                if (mJavaDetector2 != null)
-//                    mJavaDetector2.detectMultiScale(mGray, eyes, 1.1, 5, 2, // TODO: objdetect.CV_HAAR_SCALE_IMAGE
-//                            new Size(mAbsoluteFaceSize/3, mAbsoluteFaceSize/3), new Size());
-                } else if (mDetectorType == NATIVE_DETECTOR) {
-                    if (mNativeDetector != null)
-                        mNativeDetector.detect(mGray, faces);
-
-//                if (mNativeDetector2 != null)
-//                    mNativeDetector2.detect(mGray, eyes);
-                } else {
-                    Log.e("OCV: PhotoRenderer", "Detection method is not selected!");
-                }
-
-                Rect[] facesArray = faces.toArray();
-                for (int i = 0; i < facesArray.length; i++) {
-                    if (i >= 5) {
-                        break;
-                    }
-//            Imgproc.rectangle(mRgb, facesArray[i].tl(), facesArray[i].br(), FACE_RECT_COLOR, 4);
-                    Rect faceRect = facesArray[i];
-                    int faceHeight = faceRect.height;
-                    int faceWidth = faceRect.width;
-                    int faceX = faceRect.x;
-                    int faceY = faceRect.y;
-                    faceSquares[i] = caclulateFaceSquare(faceHeight, faceWidth, faceX, faceY);
-                }
-                if (facesArray.length < 5) {
-                    for (int i = facesArray.length; i < 5; i++) {
-                        faceSquares[i] = new float[12];
-                    }
-                }
-                long endOCV = System.currentTimeMillis();
-                Log.i("onDrawFrame", "OCV runtime: " + (endOCV - startOCV));
-            }
-
-            @Override
-            public void onError(Throwable e) {
-
-            }
-        });*/
 
         for (int i = 0; i < 5; i++) {
             if (faceSquares[i] != null && (faceSquares[i][0] != 0 || faceSquares[i][1] != 0)) {
@@ -795,20 +706,32 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
 
     private ImageReader mImageReader;
     private int mPreviewFormat = ImageFormat.YUV_420_888;
+//    private int mPreviewFormat = ImageFormat.JPEG;
 
     private void createCameraPreviewSession() {
         try {
-            int w = 1080;
-            int h = 1440;
+            int w = 1440;
+            int h = 1080;
             mImageReader = ImageReader.newInstance(w, h, mPreviewFormat, 2);
             mImageReader.setOnImageAvailableListener(reader -> {
-                Log.i("OCV:" , "onImageAvailable thread run: " + Thread.currentThread().getName());
+//                Log.i("OCV:", "onImageAvailable thread run: " + Thread.currentThread().getName());
                 Image image = reader.acquireLatestImage();
+                Log.i("Img size", "width: " + image.getWidth() + ", height: " + image.getHeight());
                 if (image == null)
                     return;
-
-                // sanity checks - 3 planes
-                Image.Plane[] planes = image.getPlanes();
+                Mat mRawGray = ImageUtils.imageToMat(image);
+                Mat mGray = new Mat();
+                if(cameraID.equals("0")) {
+                    Core.rotate(mRawGray, mGray, Core.ROTATE_90_CLOCKWISE);
+                }
+                else {
+                    Core.rotate(mRawGray, mGray, Core.ROTATE_90_COUNTERCLOCKWISE);
+                }
+                /**
+                 * YUV_420_888
+                 */
+//                 sanity checks - 3 planes
+/*                Image.Plane[] planes = image.getPlanes();
                 assert (planes.length == 3);
                 assert (image.getFormat() == mPreviewFormat);
 
@@ -819,16 +742,20 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
                 assert (planes[2].getPixelStride() == 2);
 
                 ByteBuffer y_plane = planes[0].getBuffer();
-//                    ByteBuffer uv_plane = planes[1].getBuffer();
+                ByteBuffer uv_plane = planes[1].getBuffer();
                 Mat y_mat = new Mat(h, w, CvType.CV_8UC1, y_plane);
-//                    Mat uv_mat = new Mat(h / 2, w / 2, CvType.CV_8UC2, uv_plane);
-                Mat mGray = y_mat;
-//                Mat mGray = y_mat.submat(0, h, 0, w);
-//                Mat mGray = new Mat();
-//                Core.flip(mRawGray, mGray, 0);
+                Mat uv_mat = new Mat(h / 2, w / 2, CvType.CV_8UC2, uv_plane);
+                Mat mGray = y_mat.submat(0, h, 0, w);*/
+
+                /**
+                 * JPEG
+                 */
+//                ByteBuffer byteBuffer = image.getPlanes()[0].getBuffer();
+//                byte[] bytes = new byte[byteBuffer.remaining()];
+//                byteBuffer.get(bytes);
 
                 if (isCapture) {
-                    Log.i("OCV:" , "capture gray img");
+                    Log.i("OCV:", "capture gray img");
                     File rootFile;
                     File mFile;
                     rootFile = new File(Environment
@@ -839,6 +766,7 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
                     mFile = new File(rootFile.getPath() + "/Image_"
                             + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())
                             + ".jpeg");
+
                     Bitmap bmp;
                     bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
 
@@ -975,10 +903,14 @@ public class PhotoRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnF
      */
     public float[] caclulateFaceSquare(int height, int width, int x, int y) {
         float squareCoords[] = {
-                (float) ((x - 540f) / 540f), (float) ((720 - y) / 720f), 0.0f,  //top left
-                (float) ((x - 540f) / 540f), (float) ((720 - (y + height)) / 720f), 0.0f, //bottom left
-                (float) ((x + width - 540f) / 540f), (float) ((720 - (y + height)) / 720f), 0.0f, //bottom right
-                (float) ((x + width - 540f) / 540f), (float) ((720 - y) / 720f), 0.0f, //top right
+                /*((x - 540f) / 540f), ((720 - y) / 720f), 0.0f,  //top left
+                ((x - 540f) / 540f), ((720 - (y + height)) / 720f), 0.0f, //bottom left
+                ((x + width - 540f) / 540f), ((720 - (y + height)) / 720f), 0.0f, //bottom right
+                ((x + width - 540f) / 540f), ((720 - y) / 720f), 0.0f, //top right*/
+                - ((x + width - 540f) / 540f), ((720 - y) / 720f), 0.0f,  //top left
+                - ((x + width - 540f) / 540f), ((720 - (y + height)) / 720f), 0.0f, //bottom left
+                - ((x - 540f) / 540f), ((720 - (y + height)) / 720f), 0.0f, //bottom right
+                - ((x - 540f) / 540f), ((720 - y) / 720f), 0.0f, //top right
         };
         Log.i("face square", "(" + squareCoords[0] + ", " + squareCoords[1] + "), ("
                 + squareCoords[3] + ", " + squareCoords[4] + "), ("

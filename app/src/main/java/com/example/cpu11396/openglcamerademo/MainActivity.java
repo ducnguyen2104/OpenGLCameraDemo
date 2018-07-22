@@ -6,10 +6,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraManager;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
@@ -23,11 +23,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
-import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
 import org.opencv.objdetect.CascadeClassifier;
 
 import java.io.File;
@@ -186,7 +182,7 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
         setContentView(R.layout.activity_main);
         glSurfaceView = findViewById(R.id.glSurfaceView);
         glSurfaceView.setLayoutParams(new FrameLayout.LayoutParams(1080, 1440));
-        glSurfaceView.init(this, screenWidth, screenHeight, screenOrientation);
+        glSurfaceView.init(this, 1080, 1440, screenOrientation);
 
         button = findViewById(R.id.buttonCapture);
         button.setOnClickListener((button) -> {glSurfaceView.capturePicture();

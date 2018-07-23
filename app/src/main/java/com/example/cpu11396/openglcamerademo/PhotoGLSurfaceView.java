@@ -39,7 +39,7 @@ public class PhotoGLSurfaceView extends GLSurfaceView {
         this.screenOrientation = screenOrientation;
         setUpFinish = false;
         this.callBack = callBack;
-        photoRenderer = new PhotoRenderer(this,screenWidth, screenHeight, screenOrientation, "0");
+        photoRenderer = new PhotoRenderer(this,screenWidth, screenHeight, screenOrientation);
         setEGLContextClientVersion(2);
         setRenderer(photoRenderer);
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
@@ -94,18 +94,10 @@ public class PhotoGLSurfaceView extends GLSurfaceView {
             photoRenderer.capturePicture();
     }
 
-    public void switchCamera(String newCameraID) {
-        photoRenderer.switchCamera(newCameraID);
+    public void switchCamera() {
+        photoRenderer.switchCamera();
     }
 
-    public void closeCamera(String newCamId) {
-        photoRenderer.closeCamera(newCamId);
-    }
-
-    public void openCamera() {
-        //photoRenderer = new PhotoRenderer(this,screenWidth, screenHeight, screenOrientation, newCamId);
-        photoRenderer.openCamera();
-    }
 
     public Mat mRgb() {
         return photoRenderer.mRgb;

@@ -18,6 +18,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -37,9 +38,6 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     private static final String[] PERMISSIONS = {Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE};
     private static final int REQUEST_ALL_PERMISSION = 0;
 
-    public static final String CAMERA_FRONT = "1";
-    public static final String CAMERA_BACK = "0";
-
     CameraManager mCameraManager;
     private int screenWidth;
     private int screenHeight;
@@ -47,7 +45,6 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     private ImageView button;
     private ImageButton switchCam;
 
-    public static String currentCamId;
 
     /**
      * Fields used for object detect
@@ -169,8 +166,6 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
 
         super.onCreate(savedInstanceState);
 
-        currentCamId = CAMERA_BACK;
-
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         int ui = getWindow().getDecorView().getSystemUiVisibility();
         ui = ui | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
@@ -199,12 +194,7 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
     }
 
     private void switchCam() {
-        if(currentCamId.equals("0")) {
-            currentCamId = "1";
-        } else {
-            currentCamId = "0";
-        }
-        glSurfaceView.switchCamera(currentCamId);
+        glSurfaceView.switchCamera();
         /*if (currentCamId.equals(CAMERA_FRONT)) {
             currentCamId = CAMERA_BACK;
             glSurfaceView.closeCamera(currentCamId);
@@ -268,4 +258,5 @@ public class MainActivity extends AppCompatActivity implements PhotoGLSurfaceCal
         screenHeight = screenWidth*4/3;
         Log.i("ScreenDimensions", "MainActivity: " + screenWidth + ", " + screenHeight);
     }
+
 }

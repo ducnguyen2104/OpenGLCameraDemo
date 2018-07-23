@@ -1,6 +1,6 @@
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: F:\\Android\\Projects\\OpenGLCameraDemo\\openCVLibrary341\\src\\main\\aidl\\org\\opencv\\engine\\OpenCVEngineInterface.aidl
+ * Original file: C:\\Users\\CPU11396-local\\Desktop\\OpenGLCameraDemo\\OpenGLCameraDemo\\openCVLibrary341\\src\\main\\aidl\\org\\opencv\\engine\\OpenCVEngineInterface.aidl
  */
 package org.opencv.engine;
 /**
